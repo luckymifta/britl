@@ -58,24 +58,16 @@ export const NAV_DATA = [
     label: "SYSTEM",
     items: [
       {
-        title: "Settings",
-        url: "/settings",
-        icon: Icons.Cog,
+        title: "User Management",
+        url: "/user-management",
+        icon: Icons.User,
         items: [],
       },
       {
-        title: "Authentication",
-        icon: Icons.Authentication,
-        items: [
-          {
-            title: "Sign In",
-            url: "/auth/sign-in",
-          },
-          {
-            title: "Sign Up",
-            url: "/auth/sign-up",
-          },
-        ],
+        title: "Logs",
+        url: "/logs",
+        icon: Icons.Document,
+        items: [],
       },
     ],
   },
