@@ -1,66 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-
-interface HeroBanner {
-  id: number;
-  title: string;
-  subtitle?: string;
-  description?: string;
-  button_text?: string;
-  button_link?: string;
-  image_url?: string;
-  is_active: boolean;
-  order_position: number;
-  created_at: string;
-  updated_at?: string;
-}
+import { getImageUrl, getPlaceholderImage } from "@/lib/utils/image";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useToast } from "@/components/ui/toast";
+import { heroBannerService, type HeroBanner } from "@/lib/api/hero-banners";
 
 export function HeroBannerList() {
-  // Mock data - replace with actual API call
-  const [banners] = useState<HeroBanner[]>([
-    {
-      id: 1,
-      title: "Welcome to Our Platform",
-      subtitle: "Experience Excellence",
-      description: "Discover amazing features and services that will transform your business.",
-      button_text: "Get Started",
-      button_link: "/get-started",
-      image_url: "/images/best-value-banner.png",
-      is_active: true,
-      order_position: 1,
-      created_at: "2024-01-15T10:00:00Z",
-      updated_at: "2024-01-16T14:30:00Z",
-    },
-    {
-      id: 2,
-      title: "Amazing Features",
-      subtitle: "Discover Innovation",
-      description: "Explore our cutting-edge technology and innovative solutions.",
-      button_text: "Learn More",
-      button_link: "/features",
-      image_url: undefined,
-      is_active: true,
-      order_position: 2,
-      created_at: "2024-01-14T09:00:00Z",
-    },
-    {
-      id: 3,
-      title: "Summer Sale 2024",
-      subtitle: "Limited Time Offer",
-      description: "Don't miss out on our biggest sale of the year with up to 50% off.",
-      button_text: "Shop Now",
-      button_link: "/sale",
-      image_url: "/images/best-value-banner.png",
-      is_active: false,
-      order_position: 3,
-      created_at: "2024-01-13T08:00:00Z",
-    },
-  ]);
-
+  const router = useRouter();
+  const { showToast } = useToast();
+  
+  const [banners, setBanners] = useState<HeroBanner[]>([]);
+  const [isLoading, setIsLoading] = useState<Record<number, boolean>>({});
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [draggedItem, setDraggedItem] = useState<number | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ isOpen: boolean; banner: HeroBanner | null }>({
+    isOpen: false,
+    banner: null
+  });
+
+  // Load hero banners from API
+  useEffect(() => {
+    const loadBanners = async () => {
+      try {
+        setIsInitialLoading(true);
+        const data = await heroBannerService.getHeroBanners();
+        setBanners(data);
+      } catch (error) {
+        console.error('Error loading banners:', error);
+        showToast({
+          title: "Error",
+          message: "Failed to load hero banners. Please try again.",
+          type: "error",
+          duration: 5000
+        });
+      } finally {
+        setIsInitialLoading(false);
+      }
+    };
+
+    loadBanners();
+  }, [showToast]);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, id: number) => {
     setDraggedItem(id);
@@ -72,25 +55,151 @@ export function HeroBannerList() {
     e.dataTransfer.dropEffect = "move";
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>, targetId: number) => {
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>, targetId: number) => {
     e.preventDefault();
     if (draggedItem && draggedItem !== targetId) {
-      // Handle reordering logic here
-      console.log(`Moving item ${draggedItem} to position of ${targetId}`);
+      try {
+        // Optimistically update the UI
+        const draggedBanner = banners.find(b => b.id === draggedItem);
+        const targetBanner = banners.find(b => b.id === targetId);
+        
+        if (draggedBanner && targetBanner) {
+          const newBanners = [...banners];
+          const draggedIndex = newBanners.findIndex(b => b.id === draggedItem);
+          const targetIndex = newBanners.findIndex(b => b.id === targetId);
+          
+          // Swap positions
+          newBanners[draggedIndex] = { ...draggedBanner, order_position: targetBanner.order_position };
+          newBanners[targetIndex] = { ...targetBanner, order_position: draggedBanner.order_position };
+          
+          // Sort by order position
+          newBanners.sort((a, b) => a.order_position - b.order_position);
+          setBanners(newBanners);
+          
+          // Update order on the server
+          const orderedIds = newBanners.map(b => b.id);
+          await heroBannerService.reorderBanners(orderedIds);
+          
+          showToast({
+            title: "Order Updated",
+            message: "Banner order has been updated successfully.",
+            type: "success",
+            duration: 3000
+          });
+        }
+      } catch (error) {
+        console.error("Error reordering banners:", error);
+        // Revert optimistic update on error
+        const data = await heroBannerService.getHeroBanners();
+        setBanners(data);
+        
+        showToast({
+          title: "Error",
+          message: "Failed to update banner order. Please try again.",
+          type: "error",
+          duration: 5000
+        });
+      }
     }
     setDraggedItem(null);
   };
 
-  const toggleActive = (id: number) => {
-    // Handle toggle active status
-    console.log(`Toggle active status for banner ${id}`);
-  };
-
-  const deleteBanner = (id: number) => {
-    if (confirm("Are you sure you want to delete this banner?")) {
-      // Handle delete
-      console.log(`Delete banner ${id}`);
+  const toggleActive = useCallback(async (id: number) => {
+    setIsLoading(prev => ({ ...prev, [id]: true }));
+    
+    try {
+      const banner = banners.find(b => b.id === id);
+      if (!banner) return;
+      
+      const newStatus = !banner.is_active;
+      
+      // Optimistically update the UI
+      setBanners(prev => prev.map(banner => 
+        banner.id === id 
+          ? { ...banner, is_active: newStatus, updated_at: new Date().toISOString() }
+          : banner
+      ));
+      
+      // Update on the server
+      await heroBannerService.updateHeroBanner(id, { is_active: newStatus });
+      
+      // Show success toast
+      showToast({
+        title: "Banner Updated",
+        message: `Banner has been ${newStatus ? 'activated' : 'deactivated'} successfully.`,
+        type: "success",
+        duration: 3000
+      });
+      
+    } catch (error) {
+      // Revert the optimistic update on error
+      setBanners(prev => prev.map(banner => 
+        banner.id === id 
+          ? { ...banner, is_active: !banner.is_active }
+          : banner
+      ));
+      console.error("Error toggling banner status:", error);
+      
+      // Show error toast
+      showToast({
+        title: "Error",
+        message: "Failed to update banner status. Please try again.",
+        type: "error",
+        duration: 5000
+      });
+    } finally {
+      setIsLoading(prev => ({ ...prev, [id]: false }));
     }
+  }, [banners, showToast]);
+
+  const deleteBanner = useCallback(async (id: number) => {
+    const banner = banners.find(b => b.id === id);
+    if (!banner) return;
+    
+    setDeleteDialog({ isOpen: true, banner });
+  }, [banners]);
+
+  const confirmDelete = useCallback(async () => {
+    const banner = deleteDialog.banner;
+    if (!banner) return;
+    
+    setIsLoading(prev => ({ ...prev, [banner.id]: true }));
+    setDeleteDialog({ isOpen: false, banner: null });
+    
+    try {
+      // Optimistically remove from UI
+      setBanners(prev => prev.filter(b => b.id !== banner.id));
+      
+      // Delete on the server
+      await heroBannerService.deleteHeroBanner(banner.id);
+      
+      // Show success toast
+      showToast({
+        title: "Banner Deleted",
+        message: `"${banner.title}" has been successfully deleted.`,
+        type: "success",
+        duration: 3000
+      });
+      
+    } catch (error) {
+      // Add the banner back on error
+      setBanners(prev => [...prev, banner].sort((a, b) => a.order_position - b.order_position));
+      console.error("Error deleting banner:", error);
+      
+      // Show error toast
+      showToast({
+        title: "Error",
+        message: "Failed to delete banner. Please try again.",
+        type: "error",
+        duration: 5000
+      });
+    } finally {
+      setIsLoading(prev => ({ ...prev, [banner.id]: false }));
+    }
+  }, [deleteDialog.banner, showToast]);
+
+  const handleEdit = (id: number) => {
+    router.push(`/hero-banners/${id}/edit`);
   };
 
   const formatDate = (dateString: string) => {
@@ -105,7 +214,19 @@ export function HeroBannerList() {
 
   return (
     <div className="space-y-4">
-      {banners.length === 0 ? (
+      {isInitialLoading ? (
+        <div className="rounded-xl border border-stroke bg-white p-8 text-center shadow-lg dark:border-dark-3 dark:bg-gray-dark">
+          <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center dark:bg-dark-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+          <h3 className="text-lg font-semibold text-dark dark:text-white mb-2">
+            Loading Hero Banners...
+          </h3>
+          <p className="text-dark-4 dark:text-dark-6">
+            Please wait while we fetch the latest banners.
+          </p>
+        </div>
+      ) : banners.length === 0 ? (
         <div className="rounded-xl border border-stroke bg-white p-8 text-center shadow-lg dark:border-dark-3 dark:bg-gray-dark">
           <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center dark:bg-dark-2">
             <svg
@@ -185,10 +306,11 @@ export function HeroBannerList() {
                   {banner.image_url ? (
                     <div className="relative h-20 w-32 overflow-hidden rounded-lg">
                       <Image
-                        src={banner.image_url}
+                        src={getImageUrl(banner.image_url) || getPlaceholderImage()}
                         alt={banner.title}
                         fill
                         className="object-cover"
+                        unoptimized
                       />
                     </div>
                   ) : (
@@ -257,28 +379,33 @@ export function HeroBannerList() {
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => toggleActive(banner.id)}
+                        disabled={isLoading[banner.id]}
                         className={cn(
-                          "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
+                          "rounded-lg px-3 py-1 text-xs font-medium transition-colors disabled:opacity-50",
                           banner.is_active
                             ? "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
                             : "bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800"
                         )}
                       >
-                        {banner.is_active ? "Deactivate" : "Activate"}
+                        {isLoading[banner.id] 
+                          ? "..." 
+                          : (banner.is_active ? "Deactivate" : "Activate")
+                        }
                       </button>
                       
-                      <a
-                        href={`/hero-banners/${banner.id}/edit`}
+                      <button
+                        onClick={() => handleEdit(banner.id)}
                         className="rounded-lg bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 transition-colors hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800"
                       >
                         Edit
-                      </a>
+                      </button>
                       
                       <button
                         onClick={() => deleteBanner(banner.id)}
-                        className="rounded-lg bg-red-100 px-3 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
+                        disabled={isLoading[banner.id]}
+                        className="rounded-lg bg-red-100 px-3 py-1 text-xs font-medium text-red-800 transition-colors hover:bg-red-200 disabled:opacity-50 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800"
                       >
-                        Delete
+                        {isLoading[banner.id] ? "..." : "Delete"}
                       </button>
                     </div>
                   </div>
@@ -288,6 +415,17 @@ export function HeroBannerList() {
           ))}
         </div>
       )}
+      
+      <ConfirmationDialog
+        isOpen={deleteDialog.isOpen}
+        title="Delete Hero Banner"
+        message={`Are you sure you want to delete "${deleteDialog.banner?.title}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteDialog({ isOpen: false, banner: null })}
+      />
     </div>
   );
 }
