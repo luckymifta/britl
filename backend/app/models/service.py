@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, DECIMAL
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, DECIMAL
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -22,3 +22,6 @@ class Service(Base):
     order_position = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    def __repr__(self):
+        return f"<Service(id={self.id}, name='{self.name}', is_active={self.is_active})>"
