@@ -15,9 +15,16 @@ class News(Base):
     category = Column(String(100))
     tags = Column(Text)  # JSON string
     featured_image_url = Column(String(500))
+    attachments = Column(Text)  # JSON string for file attachments
     is_published = Column(Boolean, default=False)
     is_featured = Column(Boolean, default=False)
     views_count = Column(Integer, default=0)
+    
+    # Announcement-specific fields
+    priority = Column(String(20), default="normal")  # low, normal, high, urgent
+    expires_at = Column(DateTime(timezone=True))
+    is_sticky = Column(Boolean, default=False)
+    
     published_at = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

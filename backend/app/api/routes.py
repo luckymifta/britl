@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api import auth, products, hero_banners, company, team, users, services
+from app.api import auth, products, hero_banners, company, team, users, services, news
 
 api_router = APIRouter()
 
@@ -15,3 +15,4 @@ api_router.include_router(services.router, prefix="/services", tags=["services"]
 api_router.include_router(hero_banners.router, prefix="/hero-banners", tags=["hero-banners"])
 api_router.include_router(company.router, prefix="/company", tags=["company"])
 api_router.include_router(team.router, prefix="/team", tags=["team"])
+api_router.include_router(news.router, prefix="/news", tags=["news"])
