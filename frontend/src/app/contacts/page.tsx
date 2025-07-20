@@ -1,88 +1,331 @@
-import { Metadata } from "next";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Contacts Management",
-  description: "Manage customer contacts and inquiries",
-};
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Metadata } from "next";
+import { contactsAPI } from "@/lib/api/contacts";
+import { Contact, ContactStats, ContactFilters, ContactStatus, ContactSortField, SortOrder } from "@/types/contact";
+import { useAuth } from "@/components/Auth/AuthProvider";
+import {
+  ContactsTable,
+  ContactsHeader,
+  ContactsStats,
+  ContactModal,
+  ReplyModal,
+  ContactFiltersPanel,
+} from "./_components";
+
+// export const metadata: Metadata = {
+//   title: "Contacts Management",
+//   description: "Manage customer contacts and inquiries",
+// };
 
 export default function ContactsPage() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const router = useRouter();
+  
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [stats, setStats] = useState<ContactStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalContacts, setTotalContacts] = useState(0);
+  
+  // Check authentication
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/auth/sign-in');
+    }
+  }, [isAuthenticated, authLoading, router]);
+
+  // Don't render anything if not authenticated
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
+  
+  // Modal states
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isReplyModalOpen, setIsReplyModalOpen] = useState(false);
+  
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<ContactStatus>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [companyFilter, setCompanyFilter] = useState('');
+  const [sortField, setSortField] = useState<ContactSortField>('created_at');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [pageSize, setPageSize] = useState(20);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Create filters object
+  const filters: ContactFilters = useMemo(() => {
+    const filterObj: ContactFilters = {
+      skip: (currentPage - 1) * pageSize,
+      limit: pageSize,
+      order_by: sortField,
+      order_desc: sortOrder === 'desc',
+    };
+
+    if (searchQuery.trim()) {
+      filterObj.search = searchQuery.trim();
+    }
+
+    if (companyFilter.trim()) {
+      filterObj.company = companyFilter.trim();
+    }
+
+    switch (statusFilter) {
+      case 'unread':
+        filterObj.is_read = false;
+        break;
+      case 'read':
+        filterObj.is_read = true;
+        break;
+      case 'replied':
+        filterObj.is_replied = true;
+        break;
+      case 'pending':
+        filterObj.is_replied = false;
+        break;
+    }
+
+    return filterObj;
+  }, [currentPage, pageSize, sortField, sortOrder, searchQuery, companyFilter, statusFilter]);
+
+  // Fetch contacts
+  const fetchContacts = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await contactsAPI.getAllContacts(filters);
+      setContacts(response.items);
+      setTotalContacts(response.total);
+      setTotalPages(response.pages);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch contacts');
+      console.error('Error fetching contacts:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
+
+  // Fetch stats
+  const fetchStats = useCallback(async () => {
+    try {
+      const statsData = await contactsAPI.getContactStats();
+      setStats(statsData);
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+  }, []);
+
+  // Initial load and refetch when filters change
+  useEffect(() => {
+    console.log('Contacts Page - Auth state:', { isAuthenticated, authLoading });
+    if (isAuthenticated && !authLoading) {
+      console.log('Contacts Page - Fetching contacts...');
+      fetchContacts();
+    }
+  }, [filters, isAuthenticated, authLoading, fetchContacts]);
+
+  // Fetch stats on component mount
+  useEffect(() => {
+    console.log('Contacts Page - Auth state for stats:', { isAuthenticated, authLoading });
+    if (isAuthenticated && !authLoading) {
+      console.log('Contacts Page - Fetching stats...');
+      fetchStats();
+    }
+  }, [isAuthenticated, authLoading, fetchStats]);
+
+  // Handle bulk actions
+  const handleBulkMarkAsRead = async () => {
+    if (selectedContacts.length === 0) return;
+    
+    try {
+      await contactsAPI.bulkMarkAsRead(selectedContacts);
+      setSelectedContacts([]);
+      fetchContacts();
+      fetchStats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to mark contacts as read');
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedContacts.length === 0) return;
+    
+    if (!confirm(`Are you sure you want to delete ${selectedContacts.length} contact(s)?`)) {
+      return;
+    }
+    
+    try {
+      await contactsAPI.bulkDelete(selectedContacts);
+      setSelectedContacts([]);
+      fetchContacts();
+      fetchStats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete contacts');
+    }
+  };
+
+  // Handle individual contact actions
+  const handleMarkAsRead = async (contact: Contact) => {
+    try {
+      if (contact.is_read) {
+        await contactsAPI.markAsUnread(contact.id);
+      } else {
+        await contactsAPI.markAsRead(contact.id);
+      }
+      fetchContacts();
+      fetchStats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update contact status');
+    }
+  };
+
+  const handleDelete = async (contact: Contact) => {
+    if (!confirm(`Are you sure you want to delete the contact from ${contact.name}?`)) {
+      return;
+    }
+    
+    try {
+      await contactsAPI.deleteContact(contact.id);
+      fetchContacts();
+      fetchStats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete contact');
+    }
+  };
+
+  const handleReply = async (replyMessage: string) => {
+    if (!selectedContact) return;
+    
+    try {
+      await contactsAPI.replyToContact(selectedContact.id, { reply_message: replyMessage });
+      setIsReplyModalOpen(false);
+      setSelectedContact(null);
+      fetchContacts();
+      fetchStats();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to send reply');
+    }
+  };
+
+  const handleViewContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsViewModalOpen(true);
+    
+    // Mark as read when viewing
+    if (!contact.is_read) {
+      handleMarkAsRead(contact);
+    }
+  };
+
+  const handleReplyToContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsReplyModalOpen(true);
+  };
+
+  const clearFilters = () => {
+    setStatusFilter('all');
+    setSearchQuery('');
+    setCompanyFilter('');
+    setSortField('created_at');
+    setSortOrder('desc');
+    setCurrentPage(1);
+  };
+
   return (
     <div className="mx-auto max-w-7xl">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-dark dark:text-white">
-            Contacts Management
-          </h1>
-          <p className="text-sm text-dark-4 dark:text-dark-6">
-            Manage customer inquiries, messages, and contact information
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="inline-flex items-center gap-2 rounded-lg border border-stroke px-4 py-2 text-sm font-medium text-dark transition-colors hover:bg-gray-1 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
-            Export
-          </button>
-          <button className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z"
-              />
-            </svg>
-            Filter
-          </button>
-        </div>
-      </div>
+      <ContactsHeader
+        totalContacts={totalContacts}
+        selectedCount={selectedContacts.length}
+        onBulkMarkAsRead={handleBulkMarkAsRead}
+        onBulkDelete={handleBulkDelete}
+        onToggleFilters={() => setShowFilters(!showFilters)}
+        showFilters={showFilters}
+      />
 
-      <div className="rounded-xl border border-stroke bg-white p-8 text-center shadow-lg dark:border-dark-3 dark:bg-gray-dark">
-        <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center dark:bg-dark-2">
-          <svg
-            className="h-8 w-8 text-dark-4 dark:text-dark-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-            />
-          </svg>
+      {error && (
+        <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+          {error}
         </div>
-        <h3 className="text-lg font-semibold text-dark dark:text-white mb-2">
-          Contacts Management
-        </h3>
-        <p className="text-dark-4 dark:text-dark-6 mb-4">
-          This feature is coming soon. You'll be able to manage all customer contacts here.
-        </p>
-        <div className="space-y-2 text-sm text-dark-4 dark:text-dark-6">
-          <p>• View and respond to inquiries</p>
-          <p>• Organize contacts by categories</p>
-          <p>• Export contact lists</p>
-          <p>• Track communication history</p>
-          <p>• Set follow-up reminders</p>
-        </div>
-      </div>
+      )}
+
+      {stats && <ContactsStats stats={stats} />}
+
+      {showFilters && (
+        <ContactFiltersPanel
+          statusFilter={statusFilter}
+          searchQuery={searchQuery}
+          companyFilter={companyFilter}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          onStatusFilterChange={setStatusFilter}
+          onSearchQueryChange={setSearchQuery}
+          onCompanyFilterChange={setCompanyFilter}
+          onSortFieldChange={setSortField}
+          onSortOrderChange={setSortOrder}
+          onClearFilters={clearFilters}
+        />
+      )}
+
+      <ContactsTable
+        contacts={contacts}
+        loading={loading}
+        selectedContacts={selectedContacts}
+        onSelectedContactsChange={setSelectedContacts}
+        onViewContact={handleViewContact}
+        onReplyToContact={handleReplyToContact}
+        onMarkAsRead={handleMarkAsRead}
+        onDelete={handleDelete}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+      />
+
+      {/* Contact View Modal */}
+      {selectedContact && (
+        <ContactModal
+          contact={selectedContact}
+          isOpen={isViewModalOpen}
+          onClose={() => {
+            setIsViewModalOpen(false);
+            setSelectedContact(null);
+          }}
+          onReply={() => {
+            setIsViewModalOpen(false);
+            setIsReplyModalOpen(true);
+          }}
+          onMarkAsRead={handleMarkAsRead}
+          onDelete={handleDelete}
+        />
+      )}
+
+      {/* Reply Modal */}
+      {selectedContact && (
+        <ReplyModal
+          contact={selectedContact}
+          isOpen={isReplyModalOpen}
+          onClose={() => {
+            setIsReplyModalOpen(false);
+            setSelectedContact(null);
+          }}
+          onSend={handleReply}
+        />
+      )}
     </div>
   );
 }
