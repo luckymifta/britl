@@ -7,3 +7,7 @@ from .news import (
     AnnouncementCreate, AnnouncementUpdate, AnnouncementResponse, AnnouncementListResponse,
     NewsImageUpdate
 )
+from .contact import (
+    ContactCreate, ContactUpdate, ContactResponse, ContactListResponse, 
+    ContactReply, ContactStats, ContactFilters
+)

@@ -5,3 +5,4 @@ from .service import service_crud
 from .team import team_member
 from .company import company
 from .news import news
+from .contact import contact
