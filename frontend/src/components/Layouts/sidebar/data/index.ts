@@ -42,7 +42,7 @@ export const NAV_DATA = [
       },
       {
         title: "News and Announcement Management",
-        url: "/news",
+        url: "/admin/news",
         icon: Icons.Document,
         items: [],
       },

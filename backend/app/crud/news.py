@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func, desc, asc
+from sqlalchemy import and_, or_, func, desc, asc, case
 from typing import List, Optional, Dict, Any, Union
 from datetime import datetime, timezone
 from app.models.news import News
@@ -212,7 +212,7 @@ class NewsCRUD(CRUDBase[News, NewsCreate, NewsUpdate]):
         # Order by sticky first, then priority, then date
         query = query.order_by(
             desc(News.is_sticky),
-            func.case(
+            case(
                 (News.priority == "urgent", 4),
                 (News.priority == "high", 3),
                 (News.priority == "normal", 2),
@@ -225,11 +225,44 @@ class NewsCRUD(CRUDBase[News, NewsCreate, NewsUpdate]):
         return query.offset(skip).limit(limit).all()
 
     def get_stats(self, db: Session) -> Dict[str, Any]:
-        """Get news statistics"""
-        total_news = db.query(News).count()
-        published_news = db.query(News).filter(News.is_published == True).count()
-        featured_news = db.query(News).filter(News.is_featured == True).count()
-        draft_news = db.query(News).filter(News.is_published == False).count()
+        """Get news and announcement statistics"""
+        # News statistics (items without priority field or with null priority)
+        total_news = db.query(News).filter(
+            (News.priority == None) | (News.priority == "")
+        ).count()
+        published_news = db.query(News).filter(
+            News.is_published == True,
+            (News.priority == None) | (News.priority == "")
+        ).count()
+        featured_news = db.query(News).filter(
+            News.is_featured == True,
+            (News.priority == None) | (News.priority == "")
+        ).count()
+        draft_news = db.query(News).filter(
+            News.is_published == False,
+            (News.priority == None) | (News.priority == "")
+        ).count()
+        
+        # Announcement statistics (items with priority field set)
+        total_announcements = db.query(News).filter(
+            News.priority != None,
+            News.priority != ""
+        ).count()
+        published_announcements = db.query(News).filter(
+            News.is_published == True,
+            News.priority != None,
+            News.priority != ""
+        ).count()
+        draft_announcements = db.query(News).filter(
+            News.is_published == False,
+            News.priority != None,
+            News.priority != ""
+        ).count()
+        sticky_announcements = db.query(News).filter(
+            News.is_sticky == True,
+            News.priority != None,
+            News.priority != ""
+        ).count()
         
         # Category breakdown
         categories = db.query(
@@ -237,19 +270,20 @@ class NewsCRUD(CRUDBase[News, NewsCreate, NewsUpdate]):
             func.count(News.id).label('count')
         ).group_by(News.category).all()
         
-        # Recent views (last 30 days)
-        thirty_days_ago = datetime.now(timezone.utc).replace(day=1)
-        recent_views = db.query(func.sum(News.views_count)).filter(
-            News.created_at >= thirty_days_ago
-        ).scalar() or 0
+        # Total views
+        total_views = db.query(func.sum(News.views_count)).scalar() or 0
         
         return {
             "total_news": total_news,
             "published_news": published_news,
             "featured_news": featured_news,
             "draft_news": draft_news,
+            "total_announcements": total_announcements,
+            "published_announcements": published_announcements,
+            "draft_announcements": draft_announcements,
+            "sticky_announcements": sticky_announcements,
+            "total_views": total_views,
             "categories": [{"name": cat, "count": count} for cat, count in categories],
-            "recent_views": recent_views
         }
 
     def create_with_slug_check(self, db: Session, *, obj_in: Union[NewsCreate, AnnouncementCreate]) -> News:

@@ -120,8 +120,12 @@ class NewsStatsResponse(BaseModel):
     published_news: int
     featured_news: int
     draft_news: int
+    total_announcements: int
+    published_announcements: int
+    draft_announcements: int
+    sticky_announcements: int
+    total_views: int
     categories: List[dict]
-    recent_views: int
 
 
 # Announcement schemas (extending news with announcement-specific fields)
