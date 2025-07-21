@@ -1,5 +1,6 @@
 import HeroBanner from '@/components/HeroBanner';
 import AboutUs from '@/components/AboutUs';
+import Products from '@/components/Products';
 
 export default function Home() {
   return (
@@ -11,12 +12,7 @@ export default function Home() {
       <AboutUs />
 
       {/* Products Section */}
-      <section id="products" className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Products</h2>
-          <p className="text-lg text-gray-600">Discover our range of quality products</p>
-        </div>
-      </section>
+      <Products />
 
       {/* Services Section */}
       <section id="services" className="min-h-screen flex items-center justify-center bg-white">
