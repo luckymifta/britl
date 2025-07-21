@@ -6,11 +6,11 @@ from app.schemas.hero_banner import HeroBannerCreate, HeroBannerUpdate
 
 
 class CRUDHeroBanner(CRUDBase[HeroBanner, HeroBannerCreate, HeroBannerUpdate]):
-    def get_active_banners(self, db: Session) -> List[HeroBanner]:
+    def get_active_banners(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[HeroBanner]:
         """Get all active hero banners ordered by position"""
         return db.query(HeroBanner).filter(
             HeroBanner.is_active == True
-        ).order_by(HeroBanner.order_position).all()
+        ).order_by(HeroBanner.order_position).offset(skip).limit(limit).all()
     
     def get_by_title(self, db: Session, *, title: str) -> Optional[HeroBanner]:
         """Get hero banner by title"""

@@ -115,17 +115,17 @@ class ServiceCRUD(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
         db.refresh(service)
         return service
 
-    def get_featured(self, db: Session, *, limit: int = 10) -> List[Service]:
+    def get_featured(self, db: Session, *, skip: int = 0, limit: int = 10) -> List[Service]:
         """Get featured services"""
         return db.query(Service).filter(
             and_(
                 Service.is_featured == True,
                 Service.is_active == True
             )
-        ).order_by(desc(Service.order_position), desc(Service.created_at)).limit(limit).all()
+        ).order_by(desc(Service.order_position), desc(Service.created_at)).offset(skip).limit(limit).all()
 
     def get_by_category(
-        self, db: Session, *, category: str, limit: int = 10
+        self, db: Session, *, category: str, skip: int = 0, limit: int = 10
     ) -> List[Service]:
         """Get services by category"""
         return db.query(Service).filter(
@@ -133,7 +133,7 @@ class ServiceCRUD(CRUDBase[Service, ServiceCreate, ServiceUpdate]):
                 Service.category == category,
                 Service.is_active == True
             )
-        ).order_by(desc(Service.order_position), desc(Service.created_at)).limit(limit).all()
+        ).order_by(desc(Service.order_position), desc(Service.created_at)).offset(skip).limit(limit).all()
 
     def get_published(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[Service]:
         """Get published (active) services"""

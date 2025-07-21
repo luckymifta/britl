@@ -28,6 +28,12 @@ class CRUDTeamMember(CRUDBase[TeamMember, TeamMemberCreate, TeamMemberUpdate]):
         
         return query.offset(skip).limit(limit).all()
 
+    def get_active_members(self, db: Session, *, skip: int = 0, limit: int = 100) -> List[TeamMember]:
+        """Get active team members for public display"""
+        return db.query(TeamMember).filter(
+            TeamMember.is_active == True
+        ).order_by(asc(TeamMember.order_position), asc(TeamMember.name)).offset(skip).limit(limit).all()
+
     def get_by_department(self, db: Session, department: str) -> List[TeamMember]:
         """Get team members by department"""
         return db.query(TeamMember).filter(

@@ -165,13 +165,13 @@ class NewsCRUD(CRUDBase[News, NewsCreate, NewsUpdate]):
             db.refresh(news)
         return news
 
-    def get_featured(self, db: Session, *, limit: int = 5) -> List[News]:
+    def get_featured(self, db: Session, *, skip: int = 0, limit: int = 5) -> List[News]:
         """Get featured news"""
         return db.query(News).filter(
             and_(News.is_featured == True, News.is_published == True)
-        ).order_by(desc(News.created_at)).limit(limit).all()
+        ).order_by(desc(News.created_at)).offset(skip).limit(limit).all()
 
-    def get_latest(self, db: Session, *, limit: int = 10, category: Optional[str] = None) -> List[News]:
+    def get_latest(self, db: Session, *, skip: int = 0, limit: int = 10, category: Optional[str] = None) -> List[News]:
         """Get latest published news"""
         query = db.query(News).filter(News.is_published == True)
         
@@ -183,7 +183,20 @@ class NewsCRUD(CRUDBase[News, NewsCreate, NewsUpdate]):
             else:
                 query = query.filter(News.category == category)
         
-        return query.order_by(desc(News.published_at)).limit(limit).all()
+        return query.order_by(desc(News.published_at)).offset(skip).limit(limit).all()
+
+    def get_published_news(self, db: Session, *, skip: int = 0, limit: int = 100, category: Optional[str] = None) -> List[News]:
+        """Get published news for public display"""
+        query = db.query(News).filter(News.is_published == True)
+        
+        # Exclude announcements for regular news
+        if category != "announcements":
+            query = query.filter(News.category != "announcement")
+        
+        if category and category != "announcements":
+            query = query.filter(News.category == category)
+            
+        return query.order_by(desc(News.published_at)).offset(skip).limit(limit).all()
 
     def get_announcements(
         self, 
