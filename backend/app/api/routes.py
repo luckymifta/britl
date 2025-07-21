@@ -1,5 +1,6 @@
 from fastapi import APIRouter
-from app.api import auth, products, hero_banners, company, team, users, services, news, contacts, public
+from app.api import auth, products, hero_banners, company, team, users, services, news, contacts
+from app.api import public
 
 api_router = APIRouter()
 
@@ -19,4 +20,4 @@ api_router.include_router(news.router, prefix="/news", tags=["news"])
 api_router.include_router(contacts.router, prefix="/contacts", tags=["contacts"])
 
 # Public API routes (no authentication required)
-api_router.include_router(public.router, prefix="/public", tags=["public"])
+api_router.include_router(public.router, prefix="/public", tags=["public"])  # type: ignore
