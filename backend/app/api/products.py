@@ -12,6 +12,38 @@ from app.utils.file_upload import save_uploaded_image, delete_image_file, get_im
 router = APIRouter()
 
 
+@router.post("/test-form")
+async def test_form_data(
+    name: str = Form(...),
+    price: Optional[str] = Form(None),  # Changed to str to handle empty values
+    is_featured: bool = Form(False),
+    is_active: bool = Form(True),
+    order_position: int = Form(0),
+    image: Optional[UploadFile] = File(None)
+):
+    """Test endpoint to debug form data parsing"""
+    
+    # Handle price conversion
+    price_value = None
+    if price and price.strip():
+        try:
+            price_value = float(price)
+        except ValueError:
+            price_value = None
+    
+    return {
+        "name": name,
+        "price": price_value,
+        "price_raw": price,
+        "is_featured": is_featured,
+        "is_active": is_active,
+        "order_position": order_position,
+        "has_image": image is not None,
+        "image_filename": image.filename if image else None,
+        "image_content_type": image.content_type if image else None
+    }
+
+
 @router.get("/", response_model=List[ProductResponse])
 def get_products(
     skip: int = 0,
@@ -89,7 +121,7 @@ async def create_product_with_image(
     name: str = Form(...),
     description: Optional[str] = Form(None),
     short_description: Optional[str] = Form(None),
-    price: Optional[float] = Form(None),
+    price: Optional[str] = Form(None),  # Changed to str to handle empty values
     category: Optional[str] = Form(None),
     features: Optional[str] = Form(None),
     specifications: Optional[str] = Form(None),
@@ -101,29 +133,66 @@ async def create_product_with_image(
     current_user: User = Depends(get_current_admin_user)
 ):
     """Create a new product with image upload (admin only)"""
-    image_url = None
-    if image:
-        # Upload and save image
-        image_path = await save_uploaded_image(image, "products")
-        image_url = get_image_url(image_path)
-    
-    # Create product data
-    product_data = ProductCreate(
-        name=name,
-        description=description,
-        short_description=short_description,
-        price=price,
-        category=category,
-        features=features,
-        specifications=specifications,
-        image_url=image_url,
-        is_featured=is_featured,
-        is_active=is_active,
-        order_position=order_position
-    )
-    
-    product_obj = product.create(db=db, obj_in=product_data)
-    return product_obj
+    try:
+        print(f"DEBUG: Received product creation request from user: {current_user.email}")
+        print(f"DEBUG: Product name: {name}")
+        print(f"DEBUG: Has image: {image is not None}")
+        print(f"DEBUG: Image filename: {image.filename if image else 'None'}")
+        print(f"DEBUG: Price: {price}, Type: {type(price)}")
+        print(f"DEBUG: is_featured: {is_featured}, Type: {type(is_featured)}")
+        print(f"DEBUG: is_active: {is_active}, Type: {type(is_active)}")
+        print(f"DEBUG: order_position: {order_position}, Type: {type(order_position)}")
+        
+        image_url = None
+        if image and image.filename:
+            print("DEBUG: Processing image upload...")
+            # Upload and save image
+            image_path = await save_uploaded_image(image, "products")
+            image_url = get_image_url(image_path)
+            print(f"DEBUG: Image saved to: {image_path}")
+            print(f"DEBUG: Image URL: {image_url}")
+        
+        # Handle price conversion - convert empty string to None
+        price_value = None
+        if price and price.strip():
+            try:
+                price_value = float(price)
+            except ValueError:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Price must be a valid number"
+                )
+        
+        # Create product data
+        product_data = ProductCreate(
+            name=name,
+            description=description,
+            short_description=short_description,
+            price=price_value,  # Use the converted value
+            category=category,
+            features=features,
+            specifications=specifications,
+            image_url=image_url,
+            is_featured=is_featured,
+            is_active=is_active,
+            order_position=order_position
+        )
+        
+        print(f"DEBUG: ProductCreate data: {product_data}")
+        
+        product_obj = product.create(db=db, obj_in=product_data)
+        print(f"DEBUG: Product created successfully with ID: {product_obj.id}")
+        return product_obj
+        
+    except Exception as e:
+        print(f"ERROR: Failed to create product: {str(e)}")
+        print(f"ERROR: Exception type: {type(e)}")
+        import traceback
+        print(f"ERROR: Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to create product: {str(e)}"
+        )
 
 
 @router.put("/{product_id}/image", response_model=ProductResponse)
