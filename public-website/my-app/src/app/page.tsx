@@ -1,4 +1,5 @@
 import HeroBanner from '@/components/HeroBanner';
+import AboutUs from '@/components/AboutUs';
 
 export default function Home() {
   return (
@@ -7,12 +8,7 @@ export default function Home() {
       <HeroBanner />
 
       {/* About Section */}
-      <section id="about" className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">About Us</h2>
-          <p className="text-lg text-gray-600">Learn more about our company history and values</p>
-        </div>
-      </section>
+      <AboutUs />
 
       {/* Products Section */}
       <section id="products" className="min-h-screen flex items-center justify-center bg-gray-50">
