@@ -190,28 +190,6 @@ export default function Products() {
               </div>
             </div>
           )}
-
-          {/* Call to Action */}
-          {products.length > 0 && (
-            <div className="text-center">
-              <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Interested in Our Products?
-                </h3>
-                <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
-                  Contact our team to learn more about how our products can help you achieve your financial goals.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg">
-                    Contact Sales
-                  </button>
-                  <button className="border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-8 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105">
-                    Download Brochure
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </section>
