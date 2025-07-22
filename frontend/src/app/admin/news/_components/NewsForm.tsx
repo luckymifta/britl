@@ -92,10 +92,10 @@ export default function NewsForm({ type, article, onSuccess, onCancel }: NewsFor
     tags: '',
     is_published: false,
     is_featured: false,
-    published_at: '',
+    published_at: undefined,
     ...(type === 'announcements' && {
       priority: 'normal',
-      expires_at: '',
+      expires_at: undefined,
       is_sticky: false
     })
   });
@@ -166,20 +166,48 @@ export default function NewsForm({ type, article, onSuccess, onCancel }: NewsFor
       setLoading(true);
       setError(null);
 
+      // Clean up form data before sending
+      const cleanedData: any = { ...formData };
+      
+      // Convert empty date strings to null
+      if (cleanedData.published_at === '') {
+        cleanedData.published_at = undefined;
+      } else if (cleanedData.published_at) {
+        // Ensure valid ISO date format
+        cleanedData.published_at = new Date(cleanedData.published_at).toISOString();
+      }
+
+      // Handle announcement-specific fields
+      if (type === 'announcements' && 'expires_at' in cleanedData) {
+        if (cleanedData.expires_at === '') {
+          cleanedData.expires_at = undefined;
+        } else if (cleanedData.expires_at) {
+          // Ensure valid ISO date format
+          cleanedData.expires_at = new Date(cleanedData.expires_at).toISOString();
+        }
+      }
+
+      // Remove empty strings for optional fields
+      ['excerpt', 'author', 'category', 'tags'].forEach(key => {
+        if (cleanedData[key] === '') {
+          cleanedData[key] = undefined;
+        }
+      });
+
       let result;
       if (article?.id) {
         // Update existing
         if (type === 'announcements') {
-          result = await newsAPI.updateAnnouncement(article.id, formData as AnnouncementUpdateData);
+          result = await newsAPI.updateAnnouncement(article.id, cleanedData as AnnouncementUpdateData);
         } else {
-          result = await newsAPI.updateNews(article.id, formData as NewsUpdateData);
+          result = await newsAPI.updateNews(article.id, cleanedData as NewsUpdateData);
         }
       } else {
         // Create new
         if (type === 'announcements') {
-          result = await newsAPI.createAnnouncement(formData as AnnouncementCreateData);
+          result = await newsAPI.createAnnouncement(cleanedData as AnnouncementCreateData);
         } else {
-          result = await newsAPI.createNews(formData as NewsCreateData);
+          result = await newsAPI.createNews(cleanedData as NewsCreateData);
         }
       }
 
@@ -463,7 +491,7 @@ export default function NewsForm({ type, article, onSuccess, onCancel }: NewsFor
                   <input
                     type="datetime-local"
                     className="w-full rounded-md border border-stroke bg-transparent py-3 px-4 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-                    value={announcementData.expires_at}
+                    value={announcementData.expires_at || ''}
                     onChange={(e) => handleInputChange('expires_at', e.target.value)}
                   />
                 </div>
@@ -645,7 +673,7 @@ export default function NewsForm({ type, article, onSuccess, onCancel }: NewsFor
                 <input
                   type="datetime-local"
                   className="w-full rounded-md border border-stroke bg-transparent py-3 px-4 text-black outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:text-white dark:focus:border-primary"
-                  value={formData.published_at}
+                  value={formData.published_at || ''}
                   onChange={(e) => handleInputChange('published_at', e.target.value)}
                 />
               </div>
