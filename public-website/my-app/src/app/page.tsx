@@ -4,27 +4,33 @@ import Products from '@/components/Products';
 import Services from '@/components/Services';
 import News from '@/components/News';
 import ContactUs from '@/components/ContactUs';
+import Footer from '@/components/Footer';
 
 export default function Home() {
   return (
-    <main className="bg-white">
-      {/* Hero Banner Section */}
-      <HeroBanner />
+    <>
+      <main className="bg-white">
+        {/* Hero Banner Section */}
+        <HeroBanner />
 
-      {/* About Section */}
-      <AboutUs />
+        {/* About Section */}
+        <AboutUs />
 
-      {/* Products Section */}
-      <Products />
+        {/* Products Section */}
+        <Products />
 
-      {/* Services Section */}
-      <Services />
+        {/* Services Section */}
+        <Services />
 
-      {/* News Section */}
-      <News />
+        {/* News Section */}
+        <News />
 
-      {/* Contact Section */}
-      <ContactUs />
-    </main>
+        {/* Contact Section */}
+        <ContactUs />
+      </main>
+
+      {/* Footer Section */}
+      <Footer />
+    </>
   );
 }
