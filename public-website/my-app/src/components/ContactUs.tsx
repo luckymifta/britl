@@ -82,23 +82,23 @@ export default function ContactUs() {
   ];
 
   return (
-    <section id="contact" className="py-20 bg-gradient-to-br from-gray-50 to-white">
+    <section id="contact" className="py-16 md:py-20 bg-gradient-to-br from-gray-50 to-white">
       <div className="container mx-auto px-4">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              <span className="text-gray-900">Contact</span> <span className="text-[#0A4E84]">Us</span>
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+              <span className="text-gray-900">Contact</span> <span className="text-blue-700">Us</span>
             </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-blue-600 to-blue-400 mx-auto mb-8"></div>
-            <p className="text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base md:text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
               Get in touch with our team. We&apos;re here to help with any questions or inquiries you may have.
             </p>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12">
             {/* Contact Information */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Get in Touch</h3>
               
               <div className="space-y-6">
@@ -163,7 +163,7 @@ export default function ContactUs() {
             </div>
 
             {/* Contact Form */}
-            <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h3>
 
               {success && (
@@ -192,7 +192,7 @@ export default function ContactUs() {
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Name */}
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-800 mb-2">
                       Full Name *
                     </label>
                     <input
@@ -202,14 +202,15 @@ export default function ContactUs() {
                       value={formData.name}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
                       placeholder="Enter your full name"
+                      aria-describedby="name-help"
                     />
                   </div>
 
                   {/* Email */}
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-800 mb-2">
                       Email Address *
                     </label>
                     <input
@@ -301,7 +302,7 @@ export default function ContactUs() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-gray-400 disabled:to-gray-500 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl disabled:transform-none disabled:shadow-lg"
+                  className="w-full bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed hover:shadow-md active:scale-[0.98] disabled:active:scale-100"
                 >
                   {loading ? (
                     <div className="flex items-center justify-center">

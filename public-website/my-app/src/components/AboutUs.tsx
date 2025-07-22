@@ -146,14 +146,14 @@ export default function AboutUs() {
   const coreValues = company.values.split(', ').map((value: string) => value.trim());
 
   return (
-    <section id="about" className="py-20 bg-gradient-to-br from-blue-50 to-white">
+    <section id="about" className="py-16 md:py-20 bg-gradient-to-br from-blue-50 to-white">
       <div className="container mx-auto px-4">
         {/* Main About Section */}
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              <span className="text-gray-900">About</span> <span className="text-gray-900">{company.name}</span>
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+              <span className="text-gray-900">About</span> <span className="text-blue-700">{company.name}</span>
             </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-blue-600 to-blue-400 mx-auto mb-8"></div>
           </div>
@@ -163,7 +163,7 @@ export default function AboutUs() {
             <div className="space-y-8">
               <div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">Our Story</h3>
-                <div className="text-lg text-gray-700 leading-relaxed space-y-4">
+                <div className="text-base md:text-lg text-gray-700 leading-relaxed space-y-4">
                   {company.description.split('\r\n\r\n').map((paragraph: string, index: number) => (
                     <p key={index}>{paragraph.trim()}</p>
                   ))}

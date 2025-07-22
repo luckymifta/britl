@@ -56,10 +56,29 @@ export default function Products() {
 
   if (loading) {
     return (
-      <section className="py-20 bg-white">
+      <section className="py-16 md:py-20 bg-gradient-to-br from-gray-50 to-white">
         <div className="container mx-auto px-4">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600"></div>
+          <div className="max-w-7xl mx-auto">
+            {/* Header Skeleton */}
+            <div className="text-center mb-12 md:mb-16">
+              <div className="animate-pulse bg-gray-200 h-10 rounded-md w-1/3 mx-auto mb-6"></div>
+              <div className="animate-pulse bg-gray-200 h-4 rounded-md w-1/2 mx-auto"></div>
+            </div>
+            
+            {/* Cards Skeleton */}
+            <div className="grid md:grid-cols-3 gap-8">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
+                  <div className="animate-pulse space-y-4">
+                    <div className="bg-gray-200 h-48 rounded-xl"></div>
+                    <div className="bg-gray-200 h-6 rounded-md w-3/4"></div>
+                    <div className="bg-gray-200 h-4 rounded-md w-full"></div>
+                    <div className="bg-gray-200 h-4 rounded-md w-2/3"></div>
+                    <div className="bg-gray-200 h-10 rounded-lg w-full mt-6"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -79,16 +98,16 @@ export default function Products() {
   }
 
   return (
-    <section id="products" className="py-20 bg-gradient-to-br from-gray-50 to-white">
+    <section id="products" className="py-16 md:py-20 bg-gradient-to-br from-gray-50 to-white">
       <div className="container mx-auto px-4">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-              <span className="text-gray-900">Our</span> <span className="text-[#0A4E84]">Products</span>
+          <div className="text-center mb-12 md:mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">
+              <span className="text-gray-900">Our</span> <span className="text-blue-700">Products</span>
             </h2>
             <div className="w-24 h-1 bg-gradient-to-r from-blue-600 to-blue-400 mx-auto mb-8"></div>
-            <p className="text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-base md:text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed">
               Discover our comprehensive range of banking products designed to meet your financial needs with excellence and innovation.
             </p>
           </div>
@@ -99,7 +118,7 @@ export default function Products() {
               {products.map((product) => (
                 <div 
                   key={product.id} 
-                  className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-8 flex flex-col h-full"
+                  className="bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 hover:border-gray-200 transition-all duration-200 p-6 md:p-8 flex flex-col h-full transform hover:scale-[1.02] group"
                 >
                   {/* Product Image */}
                   <div className="relative h-48 overflow-hidden rounded-xl mb-6">
@@ -107,7 +126,8 @@ export default function Products() {
                       src={`http://localhost:8000${product.image_url}`}
                       alt={product.name}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
                     
@@ -124,7 +144,7 @@ export default function Products() {
                   {/* Product Content */}
                   <div className="text-center flex-1 flex flex-col">
                     {/* Product Name */}
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-700 transition-colors duration-200">
                       {product.name}
                     </h3>
 
@@ -171,7 +191,7 @@ export default function Products() {
 
                     {/* Action Button - This will be pushed to the bottom */}
                     <div className="mt-auto">
-                      <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl text-sm">
+                      <button className="w-full bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:shadow-md active:scale-[0.98]">
                         Learn More
                       </button>
                     </div>

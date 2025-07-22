@@ -92,6 +92,8 @@ const HeroBanner = () => {
             fill
             style={{ objectFit: 'cover' }}
             priority={currentSlide === 0}
+            sizes="100vw"
+            className="transition-opacity duration-500"
             unoptimized
           />
         )}
@@ -102,12 +104,12 @@ const HeroBanner = () => {
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 min-h-screen flex items-center">
         <div className="max-w-2xl">
-          <h1 className="text-5xl lg:text-7xl font-bold text-white mb-6 leading-tight">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
             {currentBanner.title}
           </h1>
           
           {currentBanner.description && (
-            <p className="text-xl lg:text-2xl text-gray-200 mb-8 leading-relaxed">
+            <p className="text-lg md:text-xl lg:text-2xl text-gray-200 mb-8 leading-relaxed">
               {currentBanner.description}
             </p>
           )}
@@ -115,7 +117,8 @@ const HeroBanner = () => {
           {currentBanner.button_text && (
             <a
               href={currentBanner.button_link || '#'}
-              className="inline-flex items-center px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+              className="inline-flex items-center px-8 py-4 bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label={`Learn more: ${currentBanner.button_text}`}
             >
               {currentBanner.button_text}
               <svg className="ml-2 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
