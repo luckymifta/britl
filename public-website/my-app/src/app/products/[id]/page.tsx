@@ -62,12 +62,38 @@ export default function ProductDetailPage() {
 
   const parseFeatures = (features: string): string[] => {
     if (!features) return [];
+    
+    // Check if it's a JSON array string
+    if (features.startsWith('[') && features.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(features);
+        return Array.isArray(parsed) ? parsed.filter(feature => feature && feature.trim().length > 0) : [];
+      } catch (error) {
+        console.error('Error parsing features JSON:', error);
+        return [];
+      }
+    }
+    
+    // Otherwise, treat as newline-separated string
     return features.split('\r\n').filter(feature => feature.trim().length > 0);
   };
 
   const parseSpecifications = (specifications: string | null): string[] => {
     if (!specifications) return [];
-    return specifications.split('\r\n').filter(spec => spec.trim().length > 0);
+    
+    // Check if it's a JSON array string
+    if (specifications && specifications.startsWith('[') && specifications.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(specifications);
+        return Array.isArray(parsed) ? parsed.filter(spec => spec && spec.trim().length > 0) : [];
+      } catch (error) {
+        console.error('Error parsing specifications JSON:', error);
+        return [];
+      }
+    }
+    
+    // Otherwise, treat as newline-separated string
+    return specifications ? specifications.split('\r\n').filter(spec => spec.trim().length > 0) : [];
   };
 
   if (loading) {

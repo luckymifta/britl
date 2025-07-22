@@ -53,11 +53,37 @@ export default function ServiceDetailPage() {
 
   const parseFeatures = (features: string): string[] => {
     if (!features) return [];
+    
+    // Check if it's a JSON array string
+    if (features.startsWith('[') && features.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(features);
+        return Array.isArray(parsed) ? parsed.filter(feature => feature && feature.trim().length > 0) : [];
+      } catch (error) {
+        console.error('Error parsing features JSON:', error);
+        return [];
+      }
+    }
+    
+    // Otherwise, treat as newline-separated string
     return features.split('\r\n').filter(feature => feature.trim().length > 0);
   };
 
   const parseRequirements = (requirements: string | null): string[] => {
     if (!requirements) return [];
+    
+    // Check if it's a JSON array string
+    if (requirements.startsWith('[') && requirements.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(requirements);
+        return Array.isArray(parsed) ? parsed.filter(req => req && req.trim().length > 0) : [];
+      } catch (error) {
+        console.error('Error parsing requirements JSON:', error);
+        return [];
+      }
+    }
+    
+    // Otherwise, treat as newline-separated string
     return requirements.split('\r\n').filter(req => req.trim().length > 0);
   };
 
