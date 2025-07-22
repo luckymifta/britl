@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface Service {
   id: number;
@@ -190,9 +191,12 @@ export default function Services() {
                         <div className="text-lg font-bold text-green-600 mb-4">Free</div>
                       )}
                       
-                      <button className="w-full bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:shadow-md active:scale-[0.98]">
+                      <Link 
+                        href={`/services/${service.id}`}
+                        className="w-full bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:shadow-md active:scale-[0.98] inline-block text-center"
+                      >
                         Learn More
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>
