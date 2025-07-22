@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface Product {
   id: number;
@@ -191,9 +192,12 @@ export default function Products() {
 
                     {/* Action Button - This will be pushed to the bottom */}
                     <div className="mt-auto">
-                      <button className="w-full bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:shadow-md active:scale-[0.98]">
+                      <Link 
+                        href={`/products/${product.id}`}
+                        className="w-full bg-blue-700 hover:bg-blue-800 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:shadow-md active:scale-[0.98] inline-block text-center"
+                      >
                         Learn More
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>
