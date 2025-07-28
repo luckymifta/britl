@@ -1,5 +1,5 @@
-from typing import Generator
-from fastapi import Depends, HTTPException, status
+from typing import Generator, Optional
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -7,16 +7,32 @@ from app.core.security import verify_token
 from app.models.user import User
 
 
-# Security
-security = HTTPBearer()
+# Security - make bearer optional to support cookie auth
+security = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
+    request: Request,
     db: Session = Depends(get_db),
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
 ) -> User:
-    """Get current authenticated user"""
-    token = credentials.credentials
+    """Get current authenticated user from Bearer token or cookie"""
+    token = None
+    
+    # Try to get token from Authorization header first
+    if credentials:
+        token = credentials.credentials
+    else:
+        # Try to get token from cookie
+        token = request.cookies.get("access_token")
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No authentication token provided",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
     payload = verify_token(token)
     
     email = payload.get("sub")

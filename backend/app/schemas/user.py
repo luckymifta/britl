@@ -53,6 +53,21 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+    expires_at: Optional[str] = None
+    user: Optional[dict] = None
+
+
+class SessionValidation(BaseModel):
+    valid: bool
+    token_refreshed: bool
+    new_token: Optional[str] = None
+    expires_at: Optional[str] = None
+    user: Optional[dict] = None
+
+
+class AuthCheck(BaseModel):
+    authenticated: bool
+    expires_at: Optional[str] = None
 
 
 class TokenData(BaseModel):

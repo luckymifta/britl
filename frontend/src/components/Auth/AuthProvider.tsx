@@ -2,8 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { authService, type User } from "@/lib/api/auth";
-import { LoadingScreen } from "@/components/ui/loading-screen";
+import { authService, type User } from "@/services/auth.service";
 
 interface AuthContextType {
   user: User | null;
@@ -27,54 +26,55 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const pathname = usePathname();
 
   // Public routes that don't require authentication
-  const publicRoutes = ["/admin/login", "/admin/register"];
-  const isPublicRoute = publicRoutes.includes(pathname);
+  const publicRoutes = ["/auth/sign-in", "/auth/sign-up", "/"];
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
 
   useEffect(() => {
     const initAuth = async () => {
+      setIsLoading(true);
+      
       try {
+        // Check local authentication first
         if (authService.isAuthenticated()) {
-          // Try to get user data from localStorage first
           const storedUser = authService.getUserData();
           if (storedUser) {
             setUser(storedUser);
-            setIsLoading(false);
             
-            // If user is on login page and authenticated, redirect to dashboard
-            if (pathname === "/admin/login") {
-              router.push("/dashboard");
-              return;
-            }
-            
-            // Optionally refresh user data from API in background
-            try {
-              const freshUser = await authService.getCurrentUser();
-              setUser(freshUser);
-              authService.setUserData(freshUser);
-            } catch (error) {
-              console.warn("Failed to refresh user data:", error);
+            // Validate session with server
+            const sessionData = await authService.validateSession();
+            if (sessionData?.valid && sessionData.user) {
+              setUser(sessionData.user);
+            } else {
+              // Session invalid, clear auth
+              authService.logout();
+              setUser(null);
+              if (!isPublicRoute) {
+                router.push("/auth/sign-in");
+              }
             }
           } else {
-            // No stored user data, fetch from API
-            const userData = await authService.getCurrentUser();
-            setUser(userData);
-            authService.setUserData(userData);
-            
-            // If user is on login page and authenticated, redirect to dashboard
-            if (pathname === "/admin/login") {
-              router.push("/dashboard");
+            // No stored user but has token, fetch user data
+            try {
+              const userData = await authService.getCurrentUser();
+              setUser(userData);
+            } catch (error) {
+              console.error("Failed to get user data:", error);
+              authService.logout();
+              if (!isPublicRoute) {
+                router.push("/auth/sign-in");
+              }
             }
           }
         } else if (!isPublicRoute) {
-          // Not authenticated and not on public route, redirect to login
-          router.push("/admin/login");
+          // Not authenticated and trying to access protected route
+          router.push("/auth/sign-in");
         }
       } catch (error) {
         console.error("Auth initialization error:", error);
-        // Clear any invalid tokens
         authService.logout();
+        setUser(null);
         if (!isPublicRoute) {
-          router.push("/admin/login");
+          router.push("/auth/sign-in");
         }
       } finally {
         setIsLoading(false);
@@ -84,30 +84,68 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initAuth();
   }, [pathname, router, isPublicRoute]);
 
+  // Set up session validation interval
+  useEffect(() => {
+    if (user && authService.isAuthenticated()) {
+      const interval = setInterval(async () => {
+        const sessionData = await authService.validateSession();
+        if (!sessionData?.valid) {
+          logout();
+        }
+      }, 5 * 60 * 1000); // Check every 5 minutes
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
+
+  // Listen for automatic logout events
+  useEffect(() => {
+    const handleAutoLogout = () => {
+      setUser(null);
+      router.push("/auth/sign-in");
+    };
+
+    window.addEventListener('auth:auto-logout', handleAutoLogout);
+    return () => window.removeEventListener('auth:auto-logout', handleAutoLogout);
+  }, [router]);
+
+  // Handle browser tab focus - validate session when user returns
+  useEffect(() => {
+    const handleFocus = async () => {
+      if (user && authService.isAuthenticated()) {
+        const sessionData = await authService.validateSession();
+        if (!sessionData?.valid) {
+          logout();
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user]);
+
   const login = async (email: string, password: string) => {
     try {
-      await authService.login(email, password);
-      const userData = await authService.getCurrentUser();
-      setUser(userData);
-      authService.setUserData(userData);
-      router.push("/dashboard");
+      const loginData = await authService.login(email, password);
+      setUser(loginData.user);
+      
+      // Redirect to admin dashboard after successful login
+      router.push("/admin");
     } catch (error) {
       throw error;
     }
   };
 
   const logout = () => {
+    authService.logout();
     setUser(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
-    router.push("/admin/login");
+    router.push("/auth/sign-in");
   };
 
   const refreshUser = async () => {
     try {
       const userData = await authService.getCurrentUser();
       setUser(userData);
-      authService.setUserData(userData);
     } catch (error) {
       console.error("Failed to refresh user:", error);
       logout();
@@ -117,16 +155,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const value: AuthContextType = {
     user,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && authService.isAuthenticated(),
     login,
     logout,
     refreshUser,
   };
-
-  // Show loading screen during authentication check
-  if (isLoading) {
-    return <LoadingScreen message="Checking authentication..." />;
-  }
 
   return (
     <AuthContext.Provider value={value}>
@@ -151,12 +184,16 @@ export function withAuth<P extends object>(Component: React.ComponentType<P>) {
 
     useEffect(() => {
       if (!isLoading && !isAuthenticated) {
-        router.push("/admin/login");
+        router.push("/auth/sign-in");
       }
     }, [isAuthenticated, isLoading, router]);
 
     if (isLoading) {
-      return <LoadingScreen message="Authenticating..." />;
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-lg">Authenticating...</div>
+        </div>
+      );
     }
 
     if (!isAuthenticated) {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EmailIcon, PasswordIcon } from "@/assets/icons";
 import { useToast } from "@/components/ui/toast";
-import { authService } from "@/lib/api/auth";
+import { authService } from "@/services/auth.service";
 
 export default function AdminLoginForm() {
   const router = useRouter();
