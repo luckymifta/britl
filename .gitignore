@@ -146,3 +146,12 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Test files and temporary scripts
+**/main_test*.py
+**/requirements_minimal.txt
+**/start_server.sh
+
+# Cache directories
+**/__pycache__/
+**/.next/
